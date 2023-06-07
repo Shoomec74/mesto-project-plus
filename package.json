@@ -1,7 +1,7 @@
 {
-  "name": "starterkits",
+  "name": "mesto-backend-api",
   "version": "1.0.0",
-  "description": "< Добавьте описание проекта в свободной форме >",
+  "description": "this is a high-performance API developed on Node.js and Express.js, which provides a RESTful interface",
   "main": "dist/app.js",
   "scripts": {
     "lint": "npx eslint src/**/*.ts",

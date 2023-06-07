@@ -27,7 +27,7 @@ export const StatusMessages = {
     LikeCard: 'A nonexistent _id of the card was passed',
   },
   [HttpStatus.SERVER_ERROR]: {
-    User: 'An error occurred while processing the user',
-    Card: 'An error occurred while processing the card',
+    User: 'An error has occurred on the server',
+    Card: 'An error has occurred on the server',
   },
 };
