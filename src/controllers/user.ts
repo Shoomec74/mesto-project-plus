@@ -21,11 +21,12 @@ export const createUser = async (
     })
       .then((user) => {
         user.save();
-        res.status(HttpStatus.CREATED).send({
-          ...req.body,
-          _id: user._id,
-          message: StatusMessages[201].User,
-        });
+        res.status(HttpStatus.CREATED).send(
+          {
+            data: { ...req.body, _id: user._id },
+            message: StatusMessages[201].User,
+          },
+        );
       })
       .catch((err) => {
         res

@@ -3,8 +3,9 @@ import express, {
 } from 'express';
 import mongoose from 'mongoose';
 import routes from './routes';
+import config from './config';
 
-const { PORT = 3000 } = process.env;
+const { PORT, MONGO_URI } = config;
 
 const app = express();
 app.use(json());
@@ -34,7 +35,7 @@ app.use(logRequest as any);
 app.use(routes);
 
 mongoose
-  .connect('mongodb://localhost:27017/mestodb')
+  .connect(MONGO_URI)
   .then(() => {
     console.log('Connected to MondoDB');
   })
