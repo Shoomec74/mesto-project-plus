@@ -1,8 +1,9 @@
 import { NextFunction, Request, Response } from 'express';
 import { ObjectId } from 'mongoose';
-import { CustomRequest } from '../app';
+import { CustomRequest } from '../types/customRequest';
 import Card from '../models/card';
 import { HttpStatus, StatusMessages } from '../utils/constants';
+import ApiError from '../types/errors';
 
 export const getCards = async (
   req: Request,
@@ -12,21 +13,14 @@ export const getCards = async (
   Card.find().select('-__v')
     .then((cards) => {
       if (cards.length === 0) {
-        res
-          .status(HttpStatus.NOT_FOUND)
-          .send({ error: StatusMessages[404].Cards });
+        throw new ApiError(HttpStatus.NOT_FOUND, StatusMessages[404].Cards);
       } else {
         res
           .status(HttpStatus.OK)
           .send({ data: cards, message: StatusMessages[200].Card });
       }
     })
-    .catch((err) => {
-      res
-        .status(HttpStatus.SERVER_ERROR)
-        .send({ error: StatusMessages[500].Card });
-      next(err);
-    });
+    .catch(next);
 };
 
 export const createCard = async (
@@ -37,14 +31,12 @@ export const createCard = async (
   const { name, link } = req.body;
 
   if (!name || !link) {
-    res
-      .status(HttpStatus.BAD_REQUEST)
-      .send({ error: StatusMessages[400].Card });
+    throw new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].Card);
   } else {
     Card.create({
       name,
       link,
-      owner: req.user?._id,
+      owner: req.user!._id,
     })
       .then((card) => {
         card.save();
@@ -52,43 +44,32 @@ export const createCard = async (
           .status(HttpStatus.CREATED)
           .send({ data: card, message: StatusMessages[201].Card });
       })
-      .catch((err) => {
-        res
-          .status(HttpStatus.SERVER_ERROR)
-          .send({ error: StatusMessages[500].Card });
-        next(err);
-      });
+      .catch(next);
   }
 };
 
 export const deleteCard = async (
-  req: Request,
+  req: CustomRequest,
   res: Response,
   next: NextFunction,
 ): Promise<void | Response> => {
   const _id = req.params.cardId;
-
+  const ownerId = req.user!._id;
   if (!_id) {
-    res
-      .status(HttpStatus.BAD_REQUEST)
-      .send({ message: StatusMessages[400].Card });
+    throw new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].Card);
   } else {
     Card.findById({ _id })
       .then((card) => {
         if (!card) {
-          res
-            .status(HttpStatus.NOT_FOUND)
-            .send({ message: StatusMessages[404].CardId });
+          throw new ApiError(HttpStatus.NOT_FOUND, StatusMessages[404].CardId);
+        } else if (card.owner.toString() !== ownerId) {
+          throw new ApiError(HttpStatus.FORBIDDEN_TO_DELETE, StatusMessages[403].Card);
+        } else {
+          card.remove();
+          res.status(HttpStatus.OK).send({ message: StatusMessages[200].Card });
         }
-        card?.remove();
-        res.status(HttpStatus.OK).send({ message: StatusMessages[200].Card });
       })
-      .catch((err) => {
-        res
-          .status(HttpStatus.SERVER_ERROR)
-          .send({ error: StatusMessages[500].Card });
-        next(err);
-      });
+      .catch(next);
   }
 };
 
@@ -100,31 +81,22 @@ export const likeCard = async (
   const { cardId } = req.params;
 
   if (!cardId) {
-    res
-      .status(HttpStatus.BAD_REQUEST)
-      .send({ message: StatusMessages[400].Card });
+    throw new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].Card);
   } else {
     Card.findByIdAndUpdate(
       { cardId },
-      { $addToSet: { likes: req.user?._id } },
+      { $addToSet: { likes: req.user!._id } },
       { new: true },
     )
       .then((card) => {
         if (!card) {
-          res
-            .status(HttpStatus.NOT_FOUND)
-            .send({ message: StatusMessages[404].LikeCard });
+          throw new ApiError(HttpStatus.NOT_FOUND, StatusMessages[404].LikeCard);
         } else {
           card.save();
           res.status(HttpStatus.OK).send({ data: card, message: StatusMessages[200].Card });
         }
       })
-      .catch((err) => {
-        res
-          .status(HttpStatus.SERVER_ERROR)
-          .send({ error: StatusMessages[500].Card });
-        next(err);
-      });
+      .catch(next);
   }
 };
 
@@ -135,27 +107,18 @@ export const dislikeCard = async (
 ): Promise<void | Response> => {
   const { cardId } = req.params;
   if (!cardId) {
-    res
-      .status(HttpStatus.BAD_REQUEST)
-      .send({ message: StatusMessages[400].Card });
+    throw new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].Card);
   } else {
     const userID = req.user?._id as unknown as ObjectId;
     Card.findByIdAndUpdate(cardId, { $pull: { likes: userID } }, { new: true })
       .then((card) => {
         if (!card) {
-          res
-            .status(HttpStatus.NOT_FOUND)
-            .send({ message: StatusMessages[404].LikeCard });
+          throw new ApiError(HttpStatus.NOT_FOUND, StatusMessages[404].LikeCard);
         } else {
           card.save();
           res.status(HttpStatus.OK).send({ data: card, message: StatusMessages[200].Card });
         }
       })
-      .catch((err) => {
-        res
-          .status(HttpStatus.SERVER_ERROR)
-          .send({ error: StatusMessages[500].Card });
-        next(err);
-      });
+      .catch(next);
   }
 };
