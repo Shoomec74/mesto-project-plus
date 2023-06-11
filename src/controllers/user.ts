@@ -1,39 +1,57 @@
 import { NextFunction, Request, Response } from 'express';
-import { CustomRequest } from '../app';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import { CustomRequest } from '../types/customRequest';
 import { HttpStatus, StatusMessages } from '../utils/constants';
 import User from '../models/user';
+import ApiError from '../types/errors';
+import config from '../config';
 
 export const createUser = async (
   req: Request,
   res: Response,
   next: NextFunction,
 ): Promise<void | Response> => {
-  const { name, about, avatar } = req.body;
-  if (!name || !about || !avatar) {
-    res
-      .status(HttpStatus.BAD_REQUEST)
-      .send({ message: StatusMessages[400].User });
+  const {
+    name, about, avatar, email, password,
+  } = req.body;
+  if (!name || !about || !avatar || !email || !password) {
+    throw new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].User);
   } else {
-    User.create({
-      name,
-      about,
-      avatar,
-    })
-      .then((user) => {
-        user.save();
-        res.status(HttpStatus.CREATED).send(
-          {
-            data: { ...req.body, _id: user._id },
-            message: StatusMessages[201].User,
-          },
-        );
+    bcrypt
+      .hash(password, 10)
+      .then((hash) => {
+        User.create({
+          name,
+          about,
+          avatar,
+          email,
+          password: hash,
+        })
+          .then((user) => {
+            user.save();
+            const resUser = user.toObject();
+            delete resUser.password;
+            delete resUser.__v;
+            res.status(HttpStatus.CREATED).send({
+              user: { ...resUser },
+              message: StatusMessages[201].User,
+            });
+          })
+          .catch((err) => {
+            let error;
+            if (err.message.includes('is not a valid email')) {
+              error = new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].Email);
+              next(error);
+            } else if (err.code === 11000) {
+              error = new ApiError(HttpStatus.DUBLICATE_EMAIL, StatusMessages[409].User);
+              next(error);
+            } else {
+              next(err);
+            }
+          });
       })
-      .catch((err) => {
-        res
-          .status(HttpStatus.SERVER_ERROR)
-          .send({ error: StatusMessages[500].User });
-        next(err);
-      });
+      .catch(next);
   }
 };
 
@@ -42,24 +60,38 @@ export const getUsers = async (
   res: Response,
   next: NextFunction,
 ): Promise<void | Response> => {
-  User.find().select('-__v')
+  User.find()
+    .select('-__v')
     .then((users) => {
       if (users.length === 0) {
-        res
-          .status(HttpStatus.NOT_FOUND)
-          .send({ message: StatusMessages[404].Users });
+        throw new ApiError(HttpStatus.NOT_FOUND, StatusMessages[404].Users);
       } else {
         res
           .status(HttpStatus.OK)
           .send({ data: users, message: StatusMessages[200].User });
       }
     })
-    .catch((err) => {
-      res
-        .status(HttpStatus.SERVER_ERROR)
-        .send({ error: StatusMessages[500].User });
-      next(err);
-    });
+    .catch(next);
+};
+
+export const getCurrentUserInfo = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void | Response> => {
+  const { _id } = req.user!;
+  User.findById(_id)
+    .select('-__v')
+    .then((user) => {
+      if (!user) {
+        throw new ApiError(HttpStatus.NOT_FOUND, StatusMessages[404].Users);
+      } else {
+        res
+          .status(HttpStatus.OK)
+          .send({ data: user, message: StatusMessages[200].User });
+      }
+    })
+    .catch(next);
 };
 
 export const getUser = async (
@@ -69,28 +101,20 @@ export const getUser = async (
 ): Promise<void | Response> => {
   const { id } = req.params;
   if (!id) {
-    res
-      .status(HttpStatus.BAD_REQUEST)
-      .send({ message: StatusMessages[400].User });
+    throw new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].User);
   } else {
-    User.findById(id).select('-__v')
+    User.findById(id)
+      .select('-__v')
       .then((user) => {
         if (!user) {
-          res
-            .status(HttpStatus.NOT_FOUND)
-            .send({ message: StatusMessages[404].UserId });
+          throw new ApiError(HttpStatus.NOT_FOUND, StatusMessages[404].UserId);
         } else {
           res
             .status(HttpStatus.OK)
             .send({ data: user, message: StatusMessages[200].User });
         }
       })
-      .catch((err) => {
-        res
-          .status(HttpStatus.SERVER_ERROR)
-          .send({ error: StatusMessages[500].User });
-        next(err);
-      });
+      .catch(next);
   }
 };
 
@@ -101,21 +125,17 @@ export const updateUserInfo = async (
 ): Promise<void | Response> => {
   const { name, about } = req.body;
   if (!name || !about) {
-    res
-      .status(HttpStatus.BAD_REQUEST)
-      .send({ message: StatusMessages[400].User });
+    throw new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].User);
   } else {
     User.findByIdAndUpdate(
-      { _id: req.user?._id },
+      { _id: req.user!._id },
       { name: req.body.name, about: req.body.about },
       { new: true },
     )
       .select('-__v')
       .then((user) => {
         if (!user) {
-          res
-            .status(HttpStatus.NOT_FOUND)
-            .send({ message: StatusMessages[404].UserId });
+          throw new ApiError(HttpStatus.NOT_FOUND, StatusMessages[404].UserId);
         } else {
           user.save();
           res
@@ -123,12 +143,7 @@ export const updateUserInfo = async (
             .send({ data: user, message: StatusMessages[200].User });
         }
       })
-      .catch((err) => {
-        res
-          .status(HttpStatus.SERVER_ERROR)
-          .send({ error: StatusMessages[500].User });
-        next(err);
-      });
+      .catch(next);
   }
 };
 
@@ -140,9 +155,7 @@ export const updateUserAvatar = async (
   const { avatar } = req.body;
 
   if (!avatar) {
-    res
-      .status(HttpStatus.BAD_REQUEST)
-      .send({ message: StatusMessages[400].User });
+    throw new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].User);
   } else {
     User.findByIdAndUpdate(
       req.user?._id,
@@ -152,9 +165,7 @@ export const updateUserAvatar = async (
       .select('-__v')
       .then((user) => {
         if (!user) {
-          res
-            .status(HttpStatus.NOT_FOUND)
-            .send({ message: StatusMessages[404].UserId });
+          throw new ApiError(HttpStatus.NOT_FOUND, StatusMessages[404].UserId);
         } else {
           user.save();
           res
@@ -162,11 +173,36 @@ export const updateUserAvatar = async (
             .send({ data: user, message: StatusMessages[200].User });
         }
       })
-      .catch((err) => {
+      .catch(next);
+  }
+};
+
+export const login = async (
+  req: CustomRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void | Response> => {
+  const { email, password } = req.body;
+
+  if (!email || !password) {
+    throw new ApiError(HttpStatus.BAD_REQUEST, StatusMessages[400].User);
+  } else {
+    User.findUserByCredentials(email, password)
+      .then((user) => {
+        const token = jwt.sign({ _id: user._id }, config.JWT_SECRET, { expiresIn: '7d' });
+        res.cookie('jwt', token, { maxAge: 3600000 * 24 * 7, httpOnly: true, sameSite: true });
         res
-          .status(HttpStatus.SERVER_ERROR)
-          .send({ error: StatusMessages[500].User });
-        next(err);
+          .status(HttpStatus.OK)
+          .send({ message: StatusMessages[200].Login });
+      })
+      .catch((err) => {
+        let error;
+        if (err.message.includes('email or password')) {
+          error = new ApiError(HttpStatus.BAD_LOGIN, StatusMessages[401].Login);
+          next(error);
+        } else {
+          next(err);
+        }
       });
   }
 };

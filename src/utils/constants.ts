@@ -2,7 +2,10 @@ export enum HttpStatus {
   "OK" = 200,
   "CREATED" = 201,
   "BAD_REQUEST" = 400,
+  "BAD_LOGIN" = 401,
+  "FORBIDDEN_TO_DELETE" = 403,
   "NOT_FOUND" = 404,
+  "DUBLICATE_EMAIL" = 409,
   "SERVER_ERROR" = 500,
 }
 
@@ -10,6 +13,7 @@ export const StatusMessages = {
   [HttpStatus.OK]: {
     User: 'OK - request successfully processed',
     Card: 'OK - request successfully processed',
+    Login: 'Login successful',
   },
   [HttpStatus.CREATED]: {
     User: 'User successfully created',
@@ -18,6 +22,13 @@ export const StatusMessages = {
   [HttpStatus.BAD_REQUEST]: {
     User: 'Incorrect data was transmitted when creating a user',
     Card: 'Incorrect data was transmitted when creating a card',
+    Email: 'Incorrect email or password',
+  },
+  [HttpStatus.BAD_LOGIN]: {
+    Login: 'Invalid email or password',
+  },
+  [HttpStatus.FORBIDDEN_TO_DELETE]: {
+    Card: 'You can only delete your card',
   },
   [HttpStatus.NOT_FOUND]: {
     Users: 'Users not found',
@@ -29,5 +40,9 @@ export const StatusMessages = {
   [HttpStatus.SERVER_ERROR]: {
     User: 'An error has occurred on the server',
     Card: 'An error has occurred on the server',
+    Login: 'An error has occurred on the server',
+  },
+  [HttpStatus.DUBLICATE_EMAIL]: {
+    User: 'A user with this email already exists',
   },
 };

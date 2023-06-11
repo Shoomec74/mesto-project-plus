@@ -1,38 +1,38 @@
 import express, {
-  NextFunction, json, Request, Response,
+  json,
 } from 'express';
 import mongoose from 'mongoose';
+import { errorLogger, requestLogger } from './middlewares/logger';
 import routes from './routes';
 import config from './config';
+import { createUser, login } from './controllers/user';
+import auth from './middlewares/auth';
+import errorsHandler from './middlewares/errorsHandler';
+
+const { errors } = require('celebrate');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
 
 const { PORT, MONGO_URI } = config;
 
-const app = express();
-app.use(json());
-app.use(express.urlencoded({ extended: true }));
-
-export interface CustomRequest extends Request {
-  user?: {
-    _id: string;
-  };
-}
-
-app.use((req: CustomRequest, res: Response, next: NextFunction) => {
-  req.user = {
-    _id: '647c8164613e2ccf0314bb60',
-  };
-  next();
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // за 15 минут
+  max: 100, // можно совершить максимум 100 запросов с одного IP
 });
 
-const logRequest = (req: Request, res: Response, next: NextFunction) => {
-  console.log('Received request:', req.method, req.url);
-  console.log('Request body:', req.body);
-  console.log('Request query:', req.query);
-  next();
-};
-
-app.use(logRequest as any);
+const app = express();
+app.use(limiter);
+app.use(helmet());
+app.use(json());
+app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
+app.post('/signin', login);
+app.post('/signup', createUser);
+app.use(auth);
 app.use(routes);
+app.use(errorLogger);
+app.use(errors());
+app.use(errorsHandler);
 
 mongoose
   .connect(MONGO_URI)
