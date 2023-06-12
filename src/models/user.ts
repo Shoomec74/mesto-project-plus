@@ -1,6 +1,8 @@
 import mongoose, { Document, Schema, Model } from 'mongoose';
 import bcrypt from 'bcryptjs';
 import validator from 'validator';
+import ApiError from '../types/errors';
+import { StatusMessages } from '../utils/constants';
 
 interface IUser extends Document {
   name: string;
@@ -38,7 +40,7 @@ const UserSchema: Schema = new Schema<IUser>({
         require_protocol: true,
         allow_underscores: true,
       }),
-      message: 'URL для аватара не валидный',
+      message: 'The avatar url is not valid',
     },
   },
   email: {
@@ -54,10 +56,6 @@ const UserSchema: Schema = new Schema<IUser>({
     type: String,
     required: true,
     select: false,
-    validate: {
-      validator: (v: string) => validator.isLength(v, { min: 8 }) && /[A-Za-z]/.test(v) && /[0-9]/.test(v),
-      message: 'Пароль должен содержать минимум 8 символов, включая как минимум одну букву и одну цифру.',
-    },
   },
 });
 
@@ -65,12 +63,12 @@ UserSchema.static('findUserByCredentials', function findUserByCredentials(email,
   return this.findOne({ email }).select('+password')
     .then((user: IUser) => {
       if (!user) {
-        return Promise.reject(new Error('Invalid email or password'));
+        throw ApiError.authUserError(StatusMessages[401].Login);
       }
       return bcrypt.compare(password, user.password)
         .then((matched) => {
           if (!matched) {
-            return Promise.reject(new Error('Invalid email or password'));
+            throw ApiError.authUserError(StatusMessages[401].Login);
           }
           return user;
         });

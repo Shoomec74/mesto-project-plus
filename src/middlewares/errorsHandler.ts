@@ -1,15 +1,20 @@
 import {
-  Errback, NextFunction, Request, Response,
+  NextFunction, Request, Response,
 } from 'express';
 import ApiError from '../types/errors';
 
-const errorsHandler = (err: Errback, req: Request, res: Response, next: NextFunction) => {
-  if (err instanceof ApiError) {
-    res.status(err.statusCode).json({ message: err.message });
+interface IExpressError extends Error {
+  code?: number;
+}
+
+const errorsHandler = (err: IExpressError, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof ApiError && err.code) {
+    res.status(err.code).json({ message: err.message });
   } else {
-    res.status(500).json({ error: 'На сервере произошла ошибка' });
+    const error = ApiError.serverError(err.message);
+    res.status(error.code).json({ error: error.message });
   }
-  next();
+  next(err);
 };
 
 export default errorsHandler;

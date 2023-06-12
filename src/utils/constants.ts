@@ -1,12 +1,12 @@
 export enum HttpStatus {
-  "OK" = 200,
-  "CREATED" = 201,
-  "BAD_REQUEST" = 400,
-  "BAD_LOGIN" = 401,
-  "FORBIDDEN_TO_DELETE" = 403,
-  "NOT_FOUND" = 404,
-  "DUBLICATE_EMAIL" = 409,
-  "SERVER_ERROR" = 500,
+  'OK' = 200,
+  'CREATED' = 201,
+  'BAD_REQUEST' = 400,
+  'BAD_AUTH' = 401,
+  'FORBIDDEN_TO_DELETE' = 403,
+  'NOT_FOUND' = 404,
+  'DUBLICATE_EMAIL' = 409,
+  'SERVER_ERROR' = 500,
 }
 
 export const StatusMessages = {
@@ -24,8 +24,9 @@ export const StatusMessages = {
     Card: 'Incorrect data was transmitted when creating a card',
     Email: 'Incorrect email or password',
   },
-  [HttpStatus.BAD_LOGIN]: {
+  [HttpStatus.BAD_AUTH]: {
     Login: 'Invalid email or password',
+    Auth: 'Authorization error',
   },
   [HttpStatus.FORBIDDEN_TO_DELETE]: {
     Card: 'You can only delete your card',
@@ -36,6 +37,7 @@ export const StatusMessages = {
     UserId: 'The user by the specified _id was not found',
     CardId: 'The card with the specified _id was not found',
     LikeCard: 'A nonexistent _id of the card was passed',
+    Route: 'Route not found',
   },
   [HttpStatus.SERVER_ERROR]: {
     User: 'An error has occurred on the server',
