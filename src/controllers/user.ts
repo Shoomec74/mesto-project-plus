@@ -80,12 +80,20 @@ export const getCurrentUserInfo = async (
   User.findById(_id)
     .select('-__v')
     .then((user) => {
-      res
-        .status(HttpStatus.OK)
-        .send({ data: user, message: StatusMessages[200].User });
+      if (!user) {
+        throw notFoundError(StatusMessages[404].UserId);
+      } else {
+        res
+          .status(HttpStatus.OK)
+          .send({ data: user, message: StatusMessages[200].User });
+      }
     })
-    .catch(() => {
-      next(notFoundError(StatusMessages[404].UserId));
+    .catch((err) => {
+      if (err instanceof Error && err.name === 'CastError') {
+        next(notFoundError(StatusMessages[404].UserId));
+      } else {
+        next(err);
+      }
     });
 };
 
@@ -98,12 +106,20 @@ export const getUser = async (
   User.findById(id)
     .select('-__v')
     .then((user) => {
-      res
-        .status(HttpStatus.OK)
-        .send({ data: user, message: StatusMessages[200].User });
+      if (!user) {
+        throw notFoundError(StatusMessages[404].UserId);
+      } else {
+        res
+          .status(HttpStatus.OK)
+          .send({ data: user, message: StatusMessages[200].User });
+      }
     })
-    .catch(() => {
-      next(notFoundError(StatusMessages[404].UserId));
+    .catch((err) => {
+      if (err instanceof Error && err.name === 'CastError') {
+        next(notFoundError(StatusMessages[404].UserId));
+      } else {
+        next(err);
+      }
     });
 };
 
@@ -119,13 +135,15 @@ export const updateUserInfo = async (
   )
     .select('-__v')
     .then((user) => {
-      res
-        .status(HttpStatus.OK)
-        .send({ data: user, message: StatusMessages[200].User });
+      if (!user) {
+        throw notFoundError(StatusMessages[404].UserId);
+      } else {
+        res
+          .status(HttpStatus.OK)
+          .send({ data: user, message: StatusMessages[200].User });
+      }
     })
-    .catch(() => {
-      next(notFoundError(StatusMessages[404].UserId));
-    });
+    .catch(next);
 };
 
 export const updateUserAvatar = async (
@@ -134,18 +152,27 @@ export const updateUserAvatar = async (
   next: NextFunction,
 ): Promise<void | Response> => {
   User.findByIdAndUpdate(
-    req.user?._id,
+    req.user!._id,
     { avatar: req.body.avatar },
     { new: true },
   )
     .select('-__v')
     .then((user) => {
-      res
-        .status(HttpStatus.OK)
-        .send({ data: user, message: StatusMessages[200].User });
+      if (!user) {
+        throw notFoundError(StatusMessages[404].UserId);
+      } else {
+        res
+          .status(HttpStatus.OK)
+          .send({ data: user, message: StatusMessages[200].User });
+      }
     })
-    .catch(() => {
-      next(notFoundError(StatusMessages[404].UserId));
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        const error = badRequestError(err.message);
+        next(error);
+      } else {
+        next(err);
+      }
     });
 };
 
@@ -163,5 +190,12 @@ export const login = async (
         .status(HttpStatus.OK)
         .send({ message: StatusMessages[200].Login });
     })
-    .catch(next);
+    .catch((err) => {
+      if (err.name === 'ValidationError') {
+        const error = badRequestError(err.message);
+        next(error);
+      } else {
+        next(err);
+      }
+    });
 };

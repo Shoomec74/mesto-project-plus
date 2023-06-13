@@ -59,16 +59,21 @@ export const deleteCard = async (
   const ownerId = req.user!._id;
   Card.findById({ _id })
     .then((card) => {
-      if (card!.owner.toString() !== ownerId) {
+      if (!card) {
+        throw notFoundError(StatusMessages[404].CardId);
+      } else if (card.owner.toString() !== ownerId) {
         throw forbiddenError(StatusMessages[403].Card);
       } else {
-        card!.remove()
-          .then(() => res.status(HttpStatus.OK).send({ message: StatusMessages[200].Card }))
-          .catch(next);
+        card.remove();
+        res.status(HttpStatus.OK).send({ message: StatusMessages[200].Card });
       }
     })
-    .catch(() => {
-      next(notFoundError(StatusMessages[404].CardId));
+    .catch((err) => {
+      if (err instanceof Error && err.name === 'CastError') {
+        next(notFoundError(StatusMessages[404].CardId));
+      } else {
+        next(err);
+      }
     });
 };
 
@@ -84,10 +89,18 @@ export const likeCard = async (
     { new: true },
   )
     .then((card) => {
-      res.status(HttpStatus.OK).send({ data: card, message: StatusMessages[200].Card });
+      if (!card) {
+        throw notFoundError(StatusMessages[404].CardId);
+      } else {
+        res.status(HttpStatus.OK).send({ data: card, message: StatusMessages[200].Card });
+      }
     })
-    .catch(() => {
-      next(notFoundError(StatusMessages[404].LikeCard));
+    .catch((err) => {
+      if (err instanceof Error && err.name === 'CastError') {
+        next(notFoundError(StatusMessages[404].LikeCard));
+      } else {
+        next(err);
+      }
     });
 };
 
@@ -100,9 +113,17 @@ export const dislikeCard = async (
   const userID = req.user!._id as ObjectId;
   Card.findByIdAndUpdate(cardId, { $pull: { likes: userID } }, { new: true })
     .then((card) => {
-      res.status(HttpStatus.OK).send({ data: card, message: StatusMessages[200].Card });
+      if (!card) {
+        throw notFoundError(StatusMessages[404].CardId);
+      } else {
+        res.status(HttpStatus.OK).send({ data: card, message: StatusMessages[200].Card });
+      }
     })
-    .catch(() => {
-      next(notFoundError(StatusMessages[404].LikeCard));
+    .catch((err) => {
+      if (err instanceof Error && err.name === 'CastError') {
+        next(notFoundError(StatusMessages[404].LikeCard));
+      } else {
+        next(err);
+      }
     });
 };
