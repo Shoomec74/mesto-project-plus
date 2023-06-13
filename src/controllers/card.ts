@@ -5,7 +5,7 @@ import Card from '../models/card';
 import { HttpStatus, StatusMessages } from '../utils/constants';
 import ApiError from '../types/errors';
 
-const { notFoundError, forbiddenError, badRequestError } = ApiError;
+const { notFoundError, forbiddenDeleteCardError, badRequestError } = ApiError;
 
 export const getCards = async (
   req: Request,
@@ -62,15 +62,16 @@ export const deleteCard = async (
       if (!card) {
         throw notFoundError(StatusMessages[404].CardId);
       } else if (card.owner.toString() !== ownerId) {
-        throw forbiddenError(StatusMessages[403].Card);
+        throw forbiddenDeleteCardError(StatusMessages[403].Card);
       } else {
-        card.remove();
-        res.status(HttpStatus.OK).send({ message: StatusMessages[200].Card });
+        card.remove()
+          .then(() => res.status(HttpStatus.OK).send({ message: StatusMessages[200].Card }))
+          .catch(next);
       }
     })
     .catch((err) => {
       if (err instanceof Error && err.name === 'CastError') {
-        next(notFoundError(StatusMessages[404].CardId));
+        next(badRequestError(StatusMessages[400].Id));
       } else {
         next(err);
       }
@@ -97,7 +98,7 @@ export const likeCard = async (
     })
     .catch((err) => {
       if (err instanceof Error && err.name === 'CastError') {
-        next(notFoundError(StatusMessages[404].LikeCard));
+        next(badRequestError(StatusMessages[400].Id));
       } else {
         next(err);
       }
@@ -121,7 +122,7 @@ export const dislikeCard = async (
     })
     .catch((err) => {
       if (err instanceof Error && err.name === 'CastError') {
-        next(notFoundError(StatusMessages[404].LikeCard));
+        next(badRequestError(StatusMessages[400].Id));
       } else {
         next(err);
       }
