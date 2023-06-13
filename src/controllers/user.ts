@@ -7,7 +7,7 @@ import User from '../models/user';
 import ApiError from '../types/errors';
 import config from '../config';
 
-const { badRequestError, forbiddenError, notFoundError } = ApiError;
+const { badRequestError, forbiddenDublicateError, notFoundError } = ApiError;
 
 export const createUser = async (
   req: Request,
@@ -42,7 +42,7 @@ export const createUser = async (
             error = badRequestError(err.message);
             next(error);
           } else if (err.code === 11000) {
-            error = forbiddenError(StatusMessages[409].User);
+            error = forbiddenDublicateError(StatusMessages[409].User);
             next(error);
           } else {
             next(err);
@@ -61,7 +61,7 @@ export const getUsers = async (
     .select('-__v')
     .then((users) => {
       if (users.length === 0) {
-        throw badRequestError(StatusMessages[404].Users);
+        throw notFoundError(StatusMessages[404].Users);
       } else {
         res
           .status(HttpStatus.OK)
@@ -90,7 +90,7 @@ export const getCurrentUserInfo = async (
     })
     .catch((err) => {
       if (err instanceof Error && err.name === 'CastError') {
-        next(notFoundError(StatusMessages[404].UserId));
+        next(badRequestError(StatusMessages[400].Id));
       } else {
         next(err);
       }
@@ -116,7 +116,7 @@ export const getUser = async (
     })
     .catch((err) => {
       if (err instanceof Error && err.name === 'CastError') {
-        next(notFoundError(StatusMessages[404].UserId));
+        next(badRequestError(StatusMessages[400].Id));
       } else {
         next(err);
       }
@@ -190,12 +190,5 @@ export const login = async (
         .status(HttpStatus.OK)
         .send({ message: StatusMessages[200].Login });
     })
-    .catch((err) => {
-      if (err.name === 'ValidationError') {
-        const error = badRequestError(err.message);
-        next(error);
-      } else {
-        next(err);
-      }
-    });
+    .catch(next);
 };

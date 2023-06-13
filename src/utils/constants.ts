@@ -23,6 +23,7 @@ export const StatusMessages = {
     User: 'Incorrect data was transmitted when creating a user',
     Card: 'Incorrect data was transmitted when creating a card',
     Email: 'Incorrect email or password',
+    Id: 'An invalid id was sent',
   },
   [HttpStatus.BAD_AUTH]: {
     Login: 'Invalid email or password',
@@ -32,11 +33,11 @@ export const StatusMessages = {
     Card: 'You can only delete your card',
   },
   [HttpStatus.NOT_FOUND]: {
-    Users: 'Users not found',
     Cards: 'Cards not found',
-    UserId: 'The user by the specified _id was not found',
     CardId: 'The card with the specified _id was not found',
     LikeCard: 'A nonexistent _id of the card was passed',
+    Users: 'Users not found',
+    UserId: 'The user by the specified _id was not found',
     Route: 'Route not found',
   },
   [HttpStatus.SERVER_ERROR]: {

@@ -12,7 +12,7 @@ class ApiError extends Error {
     return new ApiError(HttpStatus.BAD_AUTH, message);
   }
 
-  static forbiddenError(message: string) {
+  static forbiddenDeleteCardError(message: string) {
     return new ApiError(HttpStatus.FORBIDDEN_TO_DELETE, message);
   }
 
@@ -28,7 +28,7 @@ class ApiError extends Error {
     return new ApiError(HttpStatus.BAD_REQUEST, message);
   }
 
-  static dublicateError(message: string) {
+  static forbiddenDublicateError(message: string) {
     return new ApiError(HttpStatus.DUBLICATE_EMAIL, message);
   }
 }
