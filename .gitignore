@@ -21,3 +21,5 @@ dist
 
 # Process ENV
 .env
+.env.*
+!.env.example
